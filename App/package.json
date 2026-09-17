@@ -1,0 +1,26 @@
+{
+  "name": "eduagent-connect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EduAgent Connect — a prototype demonstrating an Agent Ready education website using a WebMCP-style capability layer.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:server dev:client",
+    "dev:client": "npm run dev --workspace client",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace server && npm run build --workspace client",
+    "start:server": "npm run start --workspace server",
+    "start:client": "npm run start --workspace client",
+    "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace client",
+    "lint": "npm run lint --workspace server && npm run lint --workspace client"
+  },
+  "devDependencies": {
+    "npm-run-all": "4.1.5"
+  }
+}

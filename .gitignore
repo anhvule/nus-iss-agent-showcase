@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+App/client/.next/
+App/client/out/
+App/server/dist/
+dist/
+build/
+
+# Environment
+.env
+.env*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
+
+# Testing / coverage
+coverage/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
