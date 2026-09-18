@@ -23,9 +23,7 @@ export class CapabilityRegistry {
   >();
 
   /** Register a capability. Throws if the name is already taken. */
-  register<TInput, TOutput>(
-    definition: CapabilityDefinition<TInput, TOutput>,
-  ): void {
+  register<TInput, TOutput>(definition: CapabilityDefinition<TInput, TOutput>): void {
     if (this.capabilities.has(definition.name)) {
       throw new Error(`Capability "${definition.name}" is already registered.`);
     }

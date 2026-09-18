@@ -107,9 +107,7 @@ export interface ConfirmationRequest {
  * Callback that asks a human to confirm an action. Resolves true if the human
  * explicitly approved, false otherwise.
  */
-export type ConfirmationRequester = (
-  request: ConfirmationRequest,
-) => Promise<boolean>;
+export type ConfirmationRequester = (request: ConfirmationRequest) => Promise<boolean>;
 
 /** Raised when a capability is invoked but human confirmation was declined. */
 export class ConfirmationDeniedError extends Error {

@@ -1,20 +1,24 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
+import { logger } from './config/logger.js';
 
 /**
- * Process bootstrap. Starts the HTTP listener and wires graceful shutdown.
+ * Process bootstrap. Starts the HTTP listener and wires graceful shutdown
+ * (NFR-013). Configuration is validated at import time in `config/env.ts`, so an
+ * invalid environment fails fast before the server starts.
  */
 function main(): void {
   const app = createApp();
 
   const server = app.listen(env.PORT, () => {
-    console.log(
-      `[eduagent-connect-server] listening on http://localhost:${env.PORT} (${env.NODE_ENV})`,
+    logger.info(
+      { port: env.PORT, env: env.NODE_ENV },
+      'eduagent-connect-server listening',
     );
   });
 
   const shutdown = (signal: string): void => {
-    console.log(`[eduagent-connect-server] received ${signal}, shutting down`);
+    logger.info({ signal }, 'Shutting down');
     server.close(() => process.exit(0));
   };
 

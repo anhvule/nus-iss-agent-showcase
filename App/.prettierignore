@@ -1,0 +1,8 @@
+node_modules
+client/.next
+client/out
+server/dist
+dist
+build
+coverage
+package-lock.json

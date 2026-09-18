@@ -18,36 +18,56 @@ enquiry submission → submission status`
 Write actions (enquiry submission) always require **explicit human
 confirmation**, and the backend **independently validates** every write.
 
-> Status: **repository foundation only.** No course/enquiry business features are
-> implemented yet.
+> Status: **Specification 01 — Foundation implemented.** The website shell,
+> navigation, backend API foundation, and health endpoint are in place. No
+> course/enquiry business features are implemented yet — those arrive with later
+> specifications (Course Catalogue is Specification 02).
+>
+> **WebMCP is a future capability and is not implemented.** The client ships a
+> typed capability *abstraction* used today only as a transport boundary; no
+> agent tools, agent, or AI integration exist.
 
 ## Tech stack
 
-| Layer     | Stack                                             |
-| --------- | ------------------------------------------------- |
-| Frontend  | Next.js, React, TypeScript, Tailwind CSS          |
-| Backend   | Node.js, Express, TypeScript, REST APIs           |
-| Validation| Zod (client capability schemas + backend input)   |
-| Deploy    | Vercel                                            |
+| Layer      | Stack                                                    |
+| ---------- | -------------------------------------------------------- |
+| Frontend   | Next.js (App Router), React, TypeScript, Tailwind CSS    |
+| Backend    | Node.js, Express, TypeScript, REST APIs                  |
+| Validation | Zod (backend input + env; client capability schemas)     |
+| Security   | Helmet, CORS                                             |
+| Logging    | Pino (structured request/startup logs)                   |
+| Tooling    | ESLint, Prettier                                         |
+| Deploy     | Vercel                                                   |
 
 ## Repository structure
 
 ```
 App/
-├── client/     # Next.js frontend + WebMCP capability layer
+├── client/     # Next.js frontend (website shell + navigation)
 │   └── src/
-│       ├── app/            # App Router (layout, landing page, styles)
-│       └── lib/webmcp/     # Typed capability abstraction/registry + adapter
+│       ├── app/            # App Router: layout (shell), home, and section pages
+│       │                   #   (education, admissions, lifelong-learning,
+│       │                   #    industry, about)
+│       ├── components/     # layout shell (Header/Navigation/Footer/PageContainer)
+│       │                   #   and UI primitives (Button/Card/Container)
+│       ├── config/         # navigation (single source of nav items)
+│       └── lib/webmcp/     # Typed capability abstraction + transport adapter
 ├── server/     # Express REST API — owns ALL business logic
 │   └── src/
-│       ├── index.ts        # bootstrap
-│       ├── app.ts          # Express composition (middleware, routes, errors)
+│       ├── index.ts        # bootstrap + graceful shutdown
+│       ├── app.ts          # Express composition (Helmet, CORS, Pino, routes, errors)
 │       ├── routes/         # HTTP routing (health)
-│       └── config/         # Zod-validated env
+│       ├── http/           # error taxonomy, error handler, Zod validation boundary
+│       ├── config/         # Zod-validated env + Pino logger
+│       ├── controllers/    # HTTP boundary (placeholder; filled by later specs)
+│       ├── services/       # business logic (placeholder; filled by later specs)
+│       ├── repositories/   # data access (placeholder; filled by later specs)
+│       └── data/           # synthetic data (placeholder; filled by later specs)
 └── docs/       # Documentation
 .kiro/
-└── steering/   # Kiro steering: product, architecture, coding-standards,
-                # security, testing
+├── steering/   # Kiro steering: product, architecture, coding-standards,
+│               # security, testing
+└── specs/      # 01-foundation (this), 02-course-catalogue (specified, not built)
 ```
 
 ## Prerequisites
@@ -74,7 +94,9 @@ npm run dev
 Then:
 
 - API health: <http://localhost:4000/api/health>
-- App: <http://localhost:3000> (the landing page shows the backend health)
+- App: <http://localhost:3000> (the website shell with navigation across Home,
+  Education, Admissions, Lifelong Learning, Industry, and About; the home page
+  shows a live backend health indicator)
 
 ### Individual services
 
@@ -88,12 +110,19 @@ npm run dev:client   # Next.js on :3000
 ```bash
 npm run typecheck    # strict TypeScript, both workspaces
 npm run lint         # ESLint, both workspaces
+npm run format       # Prettier — write
+npm run format:check # Prettier — verify
 npm run build        # build server then client
 ```
 
-## The WebMCP capability layer
+## The WebMCP capability layer (foundation only)
 
-Implemented as a **typed capability abstraction/registry** (`client/src/lib/webmcp`),
+> WebMCP itself is **not implemented**. Specification 01 ships only the typed
+> *abstraction* and a transport boundary. No agent tools, tool registry wiring,
+> AI agent, or AI integration exist. Future agent tools will **reuse** the
+> backend business capabilities rather than duplicating them.
+
+Provided as a **typed capability abstraction/registry** (`client/src/lib/webmcp`),
 independent of any specific browser API:
 
 - **Typed capabilities** with Zod input/output schemas.
