@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { courseSchema, type Course } from '../domain/course.js';
-import rawCourses from './courses.json' with { type: 'json' };
+import rawCourses from './courses.json';
 
 /**
  * Synthetic course dataset loader (TASK-204, FR-203, NFR-201).

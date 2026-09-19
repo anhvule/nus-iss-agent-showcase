@@ -11,9 +11,22 @@ in `.kiro/steering/`.
 - **Security & agent safety** → `.kiro/steering/security.md`
 - **Testing approach & verification gates** → `.kiro/steering/testing.md`
 
-## Foundation status — Specification 01 implemented
+## Status — Specifications 01 (Foundation) and 02 (Course Catalogue) implemented
 
-The repository contains the **implemented foundation** (Specification 01):
+The Course Catalogue (Specification 02) is implemented and documented in
+[`course-catalogue.md`](./course-catalogue.md): synthetic course data, the
+backend repository → service → controller → REST API
+(`GET /api/courses`, `GET /api/courses/:courseId`) for search/filter/sort/
+pagination, and an accessible, responsive catalogue UI at
+`/lifelong-learning/courses` with navigation to a course details route.
+
+> The Course Catalogue is **human-facing only**. AI-agent / WebMCP / MCP
+> functionality is **not** implemented; the Agent-Ready / WebMCP transformation
+> remains a **future phase**.
+
+### Foundation (Specification 01)
+
+The repository also contains the **implemented foundation** (Specification 01):
 
 - npm workspaces monorepo under `App/` (`client`, `server`), with strict
   TypeScript, ESLint, and Prettier.
@@ -33,10 +46,9 @@ Repositories → Data so future agent tools can reuse the same business
 capabilities. **WebMCP is a future capability and is not implemented in
 Specification 01** — there are no agent tools, no agent, and no AI integration.
 
-No course catalogue, comparison, or enquiry business features are implemented
-yet. The Course Catalogue is specified in `.kiro/specs/02-course-catalogue/` and
-is **not** built yet; it is introduced by that specification. All data is
-synthetic; there is no Republic Polytechnic (or any) production integration.
+Course **comparison** and the **enquiry** workflow are not implemented yet; they
+are introduced by later specifications. All data is synthetic; there is no
+Republic Polytechnic (or any) production integration.
 
 ## Environment variables
 

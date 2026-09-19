@@ -5,6 +5,7 @@ import { pinoHttp } from 'pino-http';
 import { corsOrigins } from './config/env.js';
 import { logger } from './config/logger.js';
 import { healthRouter } from './routes/health.js';
+import { coursesRouter } from './routes/courses.js';
 import { errorHandler, notFoundHandler } from './http/error-handler.js';
 
 /**
@@ -35,6 +36,10 @@ export function createApp(): Application {
 
   // READ: liveness / health.
   app.use('/api/health', healthRouter);
+
+  // READ: course catalogue (Specification 02). Search/filter/sort/paginate and
+  // single-course retrieval. Business logic lives in the Course Service.
+  app.use('/api/courses', coursesRouter);
 
   // Structured 404 for unknown routes (FR-019).
   app.use(notFoundHandler);

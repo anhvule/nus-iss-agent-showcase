@@ -18,14 +18,20 @@ enquiry submission → submission status`
 Write actions (enquiry submission) always require **explicit human
 confirmation**, and the backend **independently validates** every write.
 
-> Status: **Specification 01 — Foundation implemented.** The website shell,
-> navigation, backend API foundation, and health endpoint are in place. No
-> course/enquiry business features are implemented yet — those arrive with later
-> specifications (Course Catalogue is Specification 02).
+> Status: **Specifications 01 (Foundation) and 02 (Course Catalogue)
+> implemented.** The website shell, navigation, backend API foundation, and
+> health endpoint are in place, plus a **human-facing Course Catalogue**: course
+> discovery via `GET /api/courses` and `GET /api/courses/:courseId`
+> (search/filter/sort/pagination) and an accessible catalogue UI at
+> `/lifelong-learning/courses`. Course comparison and the enquiry workflow arrive
+> with later specifications. See
+> [`App/docs/course-catalogue.md`](App/docs/course-catalogue.md).
 >
-> **WebMCP is a future capability and is not implemented.** The client ships a
-> typed capability *abstraction* used today only as a transport boundary; no
-> agent tools, agent, or AI integration exist.
+> **The Course Catalogue is human-facing only. WebMCP / AI-agent functionality
+> is a future capability and is not implemented.** The client ships a typed
+> capability *abstraction* used today only as a transport boundary; no agent
+> tools, agent, or AI integration exist. The Agent-Ready / WebMCP transformation
+> remains a **future phase**.
 
 ## Tech stack
 
@@ -45,13 +51,15 @@ confirmation**, and the backend **independently validates** every write.
 App/
 ├── client/     # Next.js frontend (website shell + navigation)
 │   └── src/
-│       ├── app/            # App Router: layout (shell), home, and section pages
-│       │                   #   (education, admissions, lifelong-learning,
-│       │                   #    industry, about)
-│       ├── components/     # layout shell (Header/Navigation/Footer/PageContainer)
-│       │                   #   and UI primitives (Button/Card/Container)
+│       ├── app/            # App Router: layout (shell), home, section pages,
+│       │                   #   and the Course Catalogue + details routes under
+│       │                   #   lifelong-learning/courses
+│       ├── components/     # layout shell, UI primitives, and course catalogue
+│       │                   #   components (courses/*)
 │       ├── config/         # navigation (single source of nav items)
-│       └── lib/webmcp/     # Typed capability abstraction + transport adapter
+│       └── lib/
+│           ├── courses/    # course API client + client-side course types
+│           └── webmcp/     # Typed capability abstraction + transport adapter
 ├── server/     # Express REST API — owns ALL business logic
 │   └── src/
 │       ├── index.ts        # bootstrap + graceful shutdown
@@ -59,15 +67,15 @@ App/
 │       ├── routes/         # HTTP routing (health)
 │       ├── http/           # error taxonomy, error handler, Zod validation boundary
 │       ├── config/         # Zod-validated env + Pino logger
-│       ├── controllers/    # HTTP boundary (placeholder; filled by later specs)
-│       ├── services/       # business logic (placeholder; filled by later specs)
-│       ├── repositories/   # data access (placeholder; filled by later specs)
-│       └── data/           # synthetic data (placeholder; filled by later specs)
+│       ├── controllers/    # HTTP boundary (health; course query validation + controller)
+│       ├── services/       # business logic (course search/filter/sort/paginate)
+│       ├── repositories/   # data access (course repository over synthetic data)
+│       └── data/           # synthetic data (courses.json + validating loader)
 └── docs/       # Documentation
 .kiro/
 ├── steering/   # Kiro steering: product, architecture, coding-standards,
 │               # security, testing
-└── specs/      # 01-foundation (this), 02-course-catalogue (specified, not built)
+└── specs/      # 01-foundation, 02-course-catalogue (both implemented)
 ```
 
 ## Prerequisites
@@ -97,6 +105,7 @@ Then:
 - App: <http://localhost:3000> (the website shell with navigation across Home,
   Education, Admissions, Lifelong Learning, Industry, and About; the home page
   shows a live backend health indicator)
+- Course Catalogue: <http://localhost:3000/lifelong-learning/courses>
 
 ### Individual services
 
@@ -110,6 +119,8 @@ npm run dev:client   # Next.js on :3000
 ```bash
 npm run typecheck    # strict TypeScript, both workspaces
 npm run lint         # ESLint, both workspaces
+npm run test --workspace server   # Vitest unit + supertest API tests
+npm run test --workspace client   # Vitest + Testing Library component tests
 npm run format       # Prettier — write
 npm run format:check # Prettier — verify
 npm run build        # build server then client
