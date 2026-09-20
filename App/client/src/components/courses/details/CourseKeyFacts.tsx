@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/Card';
 import { formatDuration, formatFee } from '@/lib/courses/format';
 import {
+  COURSE_STATUS_LABELS,
   COURSE_LEVEL_LABELS,
   COURSE_TYPE_LABELS,
   DELIVERY_MODE_LABELS,
@@ -19,6 +20,7 @@ export function CourseKeyFacts({ course }: { course: Course }): React.JSX.Elemen
   const facts: { term: string; value: string }[] = [
     { term: 'Course type', value: COURSE_TYPE_LABELS[course.courseType] },
     { term: 'Level', value: COURSE_LEVEL_LABELS[course.level] },
+    { term: 'Status', value: COURSE_STATUS_LABELS[course.status] },
     { term: 'Delivery mode', value: DELIVERY_MODE_LABELS[course.deliveryMode] },
     { term: 'Duration', value: formatDuration(course.durationWeeks) },
     { term: 'Intake', value: course.intake },

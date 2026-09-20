@@ -103,6 +103,7 @@ describe('CourseDetails', () => {
     // Structured attributes (FR-306), via Spec 02 label maps and formatters.
     expect(screen.getByText('Short course')).toBeInTheDocument();
     expect(screen.getByText('Beginner')).toBeInTheDocument();
+    expect(screen.getByText('Published')).toBeInTheDocument();
     expect(screen.getByText('Blended')).toBeInTheDocument();
     expect(screen.getByText('8 weeks')).toBeInTheDocument();
     expect(screen.getByText('April 2026')).toBeInTheDocument();
