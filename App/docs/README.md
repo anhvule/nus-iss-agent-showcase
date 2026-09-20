@@ -11,7 +11,7 @@ in `.kiro/steering/`.
 - **Security & agent safety** → `.kiro/steering/security.md`
 - **Testing approach & verification gates** → `.kiro/steering/testing.md`
 
-## Status — Specifications 01 (Foundation) and 02 (Course Catalogue) implemented
+## Status — Specifications 01 (Foundation), 02 (Course Catalogue) and 03 (Course Details) implemented
 
 The Course Catalogue (Specification 02) is implemented and documented in
 [`course-catalogue.md`](./course-catalogue.md): synthetic course data, the
@@ -20,9 +20,17 @@ backend repository → service → controller → REST API
 pagination, and an accessible, responsive catalogue UI at
 `/lifelong-learning/courses` with navigation to a course details route.
 
-> The Course Catalogue is **human-facing only**. AI-agent / WebMCP / MCP
-> functionality is **not** implemented; the Agent-Ready / WebMCP transformation
-> remains a **future phase**.
+The Course Details page (Specification 03) is implemented and documented in
+[`course-details.md`](./course-details.md): a complete, accessible, responsive
+course page at `/lifelong-learning/courses/:courseId` with the full course
+record, availability, loading/not-found/error states, and the actions a learner
+takes next (enquire, optionally add to comparison, back to the catalogue). It is
+**frontend-only** — it reuses the Specification 02 Course capability and adds no
+backend code, no endpoint, and no course business logic.
+
+> The Course Catalogue and Course Details are **human-facing only**. AI-agent /
+> WebMCP / MCP functionality is **not** implemented; the Agent-Ready / WebMCP
+> transformation remains a **future phase**.
 
 ### Foundation (Specification 01)
 
@@ -47,7 +55,9 @@ capabilities. **WebMCP is a future capability and is not implemented in
 Specification 01** — there are no agent tools, no agent, and no AI integration.
 
 Course **comparison** and the **enquiry** workflow are not implemented yet; they
-are introduced by later specifications. All data is synthetic; there is no
+are introduced by later specifications. The details page already carries the
+guarded seams for both — see
+[`phase-1-integration.md`](./phase-1-integration.md). All data is synthetic; there is no
 Republic Polytechnic (or any) production integration.
 
 ## Environment variables

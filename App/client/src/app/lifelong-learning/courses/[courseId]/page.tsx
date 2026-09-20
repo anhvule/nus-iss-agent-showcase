@@ -3,16 +3,22 @@ import { CourseDetails } from '@/components/courses/CourseDetails';
 
 export const metadata: Metadata = {
   title: 'Course details — EduAgent Connect',
-  description: 'Details for a synthetic course. For demonstration only.',
+  description:
+    'Full details for a synthetic continuing-education course: description, key facts, entry requirements, skills, availability, and how to enquire. For demonstration only.',
 };
 
 /**
- * Course details route (FR-217, AD-208) at
+ * Course Details route (FR-301, FR-303, AD-302) at
  * /lifelong-learning/courses/[courseId].
  *
- * This is a **minimal** placeholder so navigation from a course card works end
- * to end. It fetches the course via `GET /api/courses/:courseId` and shows a
- * not-found state for unknown ids. Rich details content is Specification 03.
+ * Server-component host: it passes the route's `courseId` to the client
+ * `CourseDetails` component, which fetches the course through the existing
+ * `GET /api/courses/:courseId` endpoint. Because the fetch is keyed on the id,
+ * the page is deep-linkable — opening the URL directly renders that course.
+ *
+ * The Spec 04 comparison interface is intentionally not supplied here; the
+ * add-to-comparison affordance is omitted until integration wires it in
+ * (FR-314).
  */
 export default function CourseDetailsPage({
   params,
