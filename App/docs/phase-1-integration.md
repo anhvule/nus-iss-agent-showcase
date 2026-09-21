@@ -18,7 +18,7 @@ points, implementation order, and the final human-website flow.
 | ---- | ----- | ------ | ---- |
 | 01 | Foundation | Implemented | Monorepo, Express app, Zod boundary, error/logging/security, Next.js shell, UI primitives, client API boundary, `GET /api/health` |
 | 02 | Human Course Catalogue | Implemented | Course model + synthetic data, repository/service/controller/routes, `GET /api/courses`, `GET /api/courses/:courseId`, catalogue UI + minimal details placeholder |
-| 03 | Human Course Details | Specified | Complete course details page (frontend-only; reuses Course capability) |
+| 03 | Human Course Details | Implemented | Complete course details page (frontend-only; reuses Course capability) — see [`course-details.md`](./course-details.md) |
 | 04 | Human Course Comparison | Specified | Client-side side-by-side comparison (frontend-only; shared `useComparison` interface) |
 | 05 | Human Course Enquiry | Specified | First WRITE: enquiry domain/service/repository + `POST /api/enquiries` + enquiry form/confirmation |
 | 06 | Human Website Completion / Integration | Planned | Cross-feature wiring, navigation, alias/route decisions, end-to-end journey |
@@ -76,6 +76,12 @@ client; `server/src/domain/course.ts` on the server). Any change is a coordinate
   course `id`. The **concrete enquiry route/params are owned and finalised by
   Spec 05** (e.g. `/lifelong-learning/courses/:courseId/enquire`). Spec 03 links to
   it; until agreed, Spec 03 points at the planned route.
+- **As implemented (Spec 03):** the action links to
+  `/lifelong-learning/courses/:courseId/enquire`, encoded in exactly one place —
+  `enquiryHref` in `client/src/components/courses/details/routes.ts`. If Spec 05
+  finalises a different target, that single helper is the only change required.
+  Until Spec 05 lands the route does not exist, so following the link reaches the
+  app's not-found page; nothing else is affected.
 
 ### Spec 04 → Spec 03 (comparison interface, and details navigation)
 - Spec 04 **produces** a small shared comparison interface — `useComparison()` /
@@ -84,6 +90,12 @@ client; `server/src/domain/course.ts` on the server). Any change is a coordinate
 - Spec 03 **optionally consumes** this interface for an add-to-comparison affordance
   on the details page (guarded: if the interface is unavailable, the affordance is
   omitted without breaking the page).
+- **As implemented (Spec 03):** `CourseDetails` takes an optional `comparison`
+  prop typed by `client/src/components/courses/details/comparison-seam.ts` — the
+  structural subset Spec 03 needs (`add`, `has`, `isFull`, `max`). It is a prop,
+  not a context owned by Spec 03, so Spec 04 remains the owner of comparison
+  state and rules. The details route passes nothing today; **integration wires the
+  real `useComparison()` value into the route host** (a single prop).
 - Spec 04's comparison view **navigates to** the Spec 03 details route.
 
 ### Spec 04 → Spec 05 (selected course → enquiry)
@@ -163,7 +175,10 @@ Shared Course model/API (Spec 01/02)  ──►  Agree useComparison + enquiry r
 2. **Catalogue/Details → Details page** — existing `/lifelong-learning/courses/:courseId`
    (Spec 02 route; content completed by Spec 03).
 3. **Details → Add to compare (optional)** — Spec 03 consumes Spec 04's interface.
+   *Remaining work:* pass the real `useComparison()` value as the `comparison`
+   prop in `app/lifelong-learning/courses/[courseId]/page.tsx`.
 4. **Details → Enquire** — Spec 03 links to Spec 05's enquiry entry route.
+   *Remaining work:* confirm `enquiryHref` matches the route Spec 05 ships.
 5. **Comparison view → Details / Enquire / Back** — Spec 04 links to Spec 03 route,
    Spec 05 entry route, and the catalogue.
 6. **Enquiry form → `POST /api/enquiries` → Confirmation** — Spec 05 end to end.

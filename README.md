@@ -18,20 +18,23 @@ enquiry submission → submission status`
 Write actions (enquiry submission) always require **explicit human
 confirmation**, and the backend **independently validates** every write.
 
-> Status: **Specifications 01 (Foundation) and 02 (Course Catalogue)
-> implemented.** The website shell, navigation, backend API foundation, and
-> health endpoint are in place, plus a **human-facing Course Catalogue**: course
-> discovery via `GET /api/courses` and `GET /api/courses/:courseId`
+> Status: **Specifications 01 (Foundation), 02 (Course Catalogue) and 03 (Course
+> Details) implemented.** The website shell, navigation, backend API foundation,
+> and health endpoint are in place, plus a **human-facing Course Catalogue**:
+> course discovery via `GET /api/courses` and `GET /api/courses/:courseId`
 > (search/filter/sort/pagination) and an accessible catalogue UI at
-> `/lifelong-learning/courses`. Course comparison and the enquiry workflow arrive
+> `/lifelong-learning/courses` — and a complete **Course Details** page at
+> `/lifelong-learning/courses/:courseId`, a frontend-only presentation layer over
+> the same Course capability. Course comparison and the enquiry workflow arrive
 > with later specifications. See
-> [`App/docs/course-catalogue.md`](App/docs/course-catalogue.md).
+> [`App/docs/course-catalogue.md`](App/docs/course-catalogue.md) and
+> [`App/docs/course-details.md`](App/docs/course-details.md).
 >
-> **The Course Catalogue is human-facing only. WebMCP / AI-agent functionality
-> is a future capability and is not implemented.** The client ships a typed
-> capability *abstraction* used today only as a transport boundary; no agent
-> tools, agent, or AI integration exist. The Agent-Ready / WebMCP transformation
-> remains a **future phase**.
+> **The Course Catalogue and Course Details are human-facing only. WebMCP /
+> AI-agent functionality is a future capability and is not implemented.** The
+> client ships a typed capability *abstraction* used today only as a transport
+> boundary; no agent tools, agent, or AI integration exist. The Agent-Ready /
+> WebMCP transformation remains a **future phase**.
 
 ## Tech stack
 
@@ -54,8 +57,9 @@ App/
 │       ├── app/            # App Router: layout (shell), home, section pages,
 │       │                   #   and the Course Catalogue + details routes under
 │       │                   #   lifelong-learning/courses
-│       ├── components/     # layout shell, UI primitives, and course catalogue
-│       │                   #   components (courses/*)
+│       ├── components/     # layout shell, UI primitives, course catalogue
+│       │                   #   components (courses/*), and the course details
+│       │                   #   composition (courses/details/*)
 │       ├── config/         # navigation (single source of nav items)
 │       └── lib/
 │           ├── courses/    # course API client + client-side course types
@@ -75,7 +79,8 @@ App/
 .kiro/
 ├── steering/   # Kiro steering: product, architecture, coding-standards,
 │               # security, testing
-└── specs/      # 01-foundation, 02-course-catalogue (both implemented)
+└── specs/      # 01-foundation, 02-course-catalogue, 03-course-details
+                # (all three implemented)
 ```
 
 ## Prerequisites
@@ -106,6 +111,8 @@ Then:
   Education, Admissions, Lifelong Learning, Industry, and About; the home page
   shows a live backend health indicator)
 - Course Catalogue: <http://localhost:3000/lifelong-learning/courses>
+- Course Details: open any course from the catalogue, e.g.
+  <http://localhost:3000/lifelong-learning/courses/product-design-adv>
 
 ### Individual services
 

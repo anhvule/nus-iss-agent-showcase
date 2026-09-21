@@ -147,6 +147,12 @@ export const AVAILABILITY_LABELS: Record<CourseAvailability, string> = {
   waitlist: 'Waitlist',
 };
 
+export const COURSE_STATUS_LABELS: Record<CourseStatus, string> = {
+  published: 'Published',
+  draft: 'Draft',
+  archived: 'Archived',
+};
+
 export const SORT_LABELS: Record<CourseSortField, string> = {
   relevance: 'Relevance',
   title: 'Title',

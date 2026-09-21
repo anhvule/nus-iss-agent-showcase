@@ -1,22 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { coursesApi, CourseApiError } from '@/lib/courses/api';
 import type { Course } from '@/lib/courses/types';
+import { CourseDetailHeader } from './details/CourseDetailHeader';
+import { CourseOverview } from './details/CourseOverview';
+import { CourseKeyFacts } from './details/CourseKeyFacts';
+import { CourseRequirements } from './details/CourseRequirements';
+import { CourseSkills } from './details/CourseSkills';
+import { CourseTags } from './details/CourseTags';
+import { CourseActions } from './details/CourseActions';
 import {
-  COURSE_LEVEL_LABELS,
-  COURSE_TYPE_LABELS,
-  DELIVERY_MODE_LABELS,
-} from '@/lib/courses/types';
-import { formatFee, formatDuration } from '@/lib/courses/format';
-import { AvailabilityBadge } from './AvailabilityBadge';
-import { Card } from '@/components/ui/Card';
+  CourseDetailsError,
+  CourseDetailsLoading,
+  CourseDetailsNotFound,
+} from './details/DetailStates';
+import type { CourseComparisonSeam } from './details/comparison-seam';
+import { CATALOGUE_HREF } from './details/routes';
 
 /**
- * Minimal course details view (FR-217). Fetches a single course and shows a
- * not-found state for unknown/unlistable ids. Deliberately minimal — the rich
- * details experience is Specification 03. Presentation only.
+ * Course Details page body (Specification 03).
+ *
+ * Presentation only: it retrieves one course through the existing Spec 02 API
+ * client (`GET /api/courses/:courseId`) and renders it. No course business logic
+ * lives here — the backend Course Service remains the single source of truth
+ * (FR-302, NFR-301), including the listability rule behind the 404 (FR-311).
+ *
+ * Request state uses the discriminated-union pattern shared with the catalogue,
+ * with an `AbortController` for cleanup and a reload token for retry.
  */
 
 type DetailState =
@@ -25,18 +37,32 @@ type DetailState =
   | { phase: 'notFound' }
   | { phase: 'error'; message: string };
 
-export function CourseDetails({ courseId }: { courseId: string }): React.JSX.Element {
+export function CourseDetails({
+  courseId,
+  comparison,
+}: {
+  courseId: string;
+  /** Optional Spec 04 comparison interface; omitted until Spec 04 is wired in. */
+  comparison?: CourseComparisonSeam;
+}): React.JSX.Element {
   const [state, setState] = useState<DetailState>({ phase: 'loading' });
+  const [reloadToken, setReloadToken] = useState(0);
+
+  // Guards against a slow earlier response overwriting a newer one.
+  const requestSeq = useRef(0);
 
   useEffect(() => {
+    const seq = ++requestSeq.current;
     const controller = new AbortController();
     setState({ phase: 'loading' });
 
     coursesApi
       .getById(courseId, controller.signal)
-      .then((course) => setState({ phase: 'found', course }))
+      .then((course) => {
+        if (seq === requestSeq.current) setState({ phase: 'found', course });
+      })
       .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || seq !== requestSeq.current) return;
         if (error instanceof CourseApiError && error.status === 404) {
           setState({ phase: 'notFound' });
           return;
@@ -51,105 +77,74 @@ export function CourseDetails({ courseId }: { courseId: string }): React.JSX.Ele
       });
 
     return () => controller.abort();
-  }, [courseId]);
+  }, [courseId, reloadToken]);
+
+  const retry = useCallback(() => setReloadToken((token) => token + 1), []);
+
+  if (state.phase === 'loading') return <CourseDetailsLoading />;
+  if (state.phase === 'notFound') return <CourseDetailsNotFound />;
+  if (state.phase === 'error') {
+    return <CourseDetailsError message={state.message} onRetry={retry} />;
+  }
+
+  const { course } = state;
+  const hasSupportingLists =
+    course.entryRequirements.length > 0 ||
+    course.skills.length > 0 ||
+    course.tags.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <nav aria-label="Breadcrumb">
         <Link
-          href="/lifelong-learning/courses"
+          href={CATALOGUE_HREF}
           className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-sky-800 hover:text-sky-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
         >
           <span aria-hidden="true">‹</span> Back to Course Catalogue
         </Link>
       </nav>
 
-      {state.phase === 'loading' && (
-        <p aria-live="polite" className="text-slate-600">
-          Loading course…
-        </p>
-      )}
+      {/* Announces the loaded course for assistive technology (FR-318). */}
+      <p aria-live="polite" className="sr-only">
+        Course details loaded for {course.title}.
+      </p>
 
-      {state.phase === 'notFound' && (
-        <div role="status" className="rounded-lg border border-dashed border-slate-300 bg-white p-8">
-          <h1 className="text-2xl font-bold text-slate-900">Course not found</h1>
-          <p className="mt-1 text-slate-600">
-            We couldn&apos;t find a course with that identifier. It may have been
-            removed or is not currently listed.
-          </p>
+      {/*
+        Each block is rendered once, in a single DOM order that works at every
+        width (NFR-305). Mobile stacks it: identity → actions → key facts →
+        description → supporting lists, so a learner can enquire and skim the
+        essentials without scrolling the page. From `lg` the same markup becomes
+        a two-column grid where the actions and key facts form one cohesive,
+        sticky side panel beside the reading column.
+      */}
+      <article className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="lg:col-start-1 lg:col-end-3 lg:row-start-1">
+          <CourseDetailHeader course={course} />
         </div>
-      )}
 
-      {state.phase === 'error' && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-8">
-          <h1 className="text-2xl font-bold text-red-900">Unable to load course</h1>
-          <p className="mt-1 text-red-800">{state.message}</p>
+        <div className="space-y-6 lg:col-start-2 lg:row-start-2 lg:sticky lg:top-6">
+          <CourseActions course={course} comparison={comparison} />
+          <CourseKeyFacts course={course} />
         </div>
-      )}
 
-      {state.phase === 'found' && (
-        <article className="space-y-5">
-          <header className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm font-medium uppercase tracking-wide text-sky-700">
-                {state.course.discipline}
-              </p>
-              <AvailabilityBadge availability={state.course.availability} />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              {state.course.title}
-            </h1>
-            <p className="text-sm text-slate-500">Course code: {state.course.code}</p>
-          </header>
+        <div className="space-y-8 lg:col-start-1 lg:row-start-2">
+          <CourseOverview course={course} />
 
-          <p className="max-w-2xl text-slate-700">{state.course.description}</p>
-
-          <Card as="section" className="max-w-2xl">
-            <h2 className="text-lg font-semibold text-slate-900">At a glance</h2>
-            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div>
-                <dt className="text-slate-500">Course type</dt>
-                <dd className="text-slate-800">
-                  {COURSE_TYPE_LABELS[state.course.courseType]}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Level</dt>
-                <dd className="text-slate-800">
-                  {COURSE_LEVEL_LABELS[state.course.level]}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Delivery mode</dt>
-                <dd className="text-slate-800">
-                  {DELIVERY_MODE_LABELS[state.course.deliveryMode]}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Duration</dt>
-                <dd className="text-slate-800">
-                  {formatDuration(state.course.durationWeeks)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Next intake</dt>
-                <dd className="text-slate-800">{state.course.intake}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Fee</dt>
-                <dd className="text-slate-800">
-                  {formatFee(state.course.fee, state.course.currency)}
-                </dd>
-              </div>
-            </dl>
-          </Card>
-
-          <p className="text-sm text-slate-400">
-            This is a minimal details view. Richer course content and comparison
-            are added by a later specification.
-          </p>
-        </article>
-      )}
+          {hasSupportingLists && (
+            <section aria-labelledby="course-details-more-heading" className="space-y-6">
+              <h2
+                id="course-details-more-heading"
+                className="text-xl font-semibold text-slate-900"
+              >
+                Requirements and outcomes
+              </h2>
+              <CourseRequirements requirements={course.entryRequirements} />
+              <CourseSkills skills={course.skills} />
+              <CourseTags tags={course.tags} />
+            </section>
+          )}
+        </div>
+      </article>
     </div>
   );
 }
