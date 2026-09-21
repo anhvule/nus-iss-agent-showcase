@@ -5,6 +5,7 @@ import { AvailabilityBadge } from '@/components/courses/AvailabilityBadge';
 import { formatDuration, formatFee } from '@/lib/courses/format';
 import {
   COURSE_LEVEL_LABELS,
+  COURSE_STATUS_LABELS,
   COURSE_TYPE_LABELS,
   DELIVERY_MODE_LABELS,
   type Course,
@@ -33,6 +34,7 @@ const ATTRIBUTES: { label: string; render: (course: Course) => React.ReactNode }
     label: 'Availability',
     render: (course) => <AvailabilityBadge availability={course.availability} />,
   },
+  { label: 'Status', render: (course) => COURSE_STATUS_LABELS[course.status] },
   { label: 'Course type', render: (course) => COURSE_TYPE_LABELS[course.courseType] },
   { label: 'Discipline', render: (course) => course.discipline },
   { label: 'Category', render: (course) => course.category },
@@ -45,11 +47,6 @@ const ATTRIBUTES: { label: string; render: (course: Course) => React.ReactNode }
   { label: 'Intake', render: (course) => course.intake },
   { label: 'Fee', render: (course) => formatFee(course.fee, course.currency) },
   { label: 'Eligibility', render: (course) => course.eligibility },
-  /*
-   * Publication `status` is deliberately absent: the catalogue only serves
-   * listable courses, so the row would read "Published" in every column and
-   * differentiate nothing. Availability is the attribute a learner compares.
-   */
 ];
 
 const ROW_HEADER_CLASS =

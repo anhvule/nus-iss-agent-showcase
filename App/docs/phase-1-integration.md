@@ -108,10 +108,10 @@ client; `server/src/domain/course.ts` on the server). Any change is a coordinate
   omitted without breaking the page).
 - **As implemented (Spec 03):** `CourseDetails` takes an optional `comparison`
   prop typed by `client/src/components/courses/details/comparison-seam.ts` — the
-  structural subset Spec 03 needs (`add`, `has`, `isFull`, `max`). It is a prop,
-  not a context owned by Spec 03, so Spec 04 remains the owner of comparison
-  state and rules. The details route passes nothing today; **integration wires the
-  real `useComparison()` value into the route host** (a single prop).
+  structural subset Spec 03 needs (`add`, `remove`, `has`, `isFull`, `max`). It
+  is a prop, not a context owned by Spec 03, so Spec 04 remains the owner of
+  comparison state and rules. The details route host now wires the real
+  `useComparison()` value via a small client wrapper.
 - Spec 04's comparison view **navigates to** the Spec 03 details route.
 
 ### Spec 04 → Spec 05 (selected course → enquiry)
@@ -191,14 +191,10 @@ Shared Course model/API (Spec 01/02)  ──►  Agree useComparison + enquiry r
    one control and holds no comparison state).
 2. **Catalogue/Details → Details page** — existing `/lifelong-learning/courses/:courseId`
    (Spec 02 route; content completed by Spec 03).
-3. **Details → Add to compare (optional)** — Spec 03 consumes Spec 04's interface.
-   *Remaining work (Spec 06):* pass the real `useComparison()` value as the
-   `comparison` prop in `app/lifelong-learning/courses/[courseId]/page.tsx`.
-   Both sides now exist — Spec 04 ships the interface and Spec 03 the seam — so
-   this is a one-prop change. The route host is a server component, so the value
-   has to be read in a small client wrapper. Until then the details page simply
-   omits the affordance; the catalogue card and the comparison view both offer
-   add/remove, and the sticky count is visible on the details page.
+3. **Details → Add to compare (optional)** — Spec 03 consumes Spec 04's
+   interface. **Wired:** the route host uses a small client wrapper to pass the
+   real `useComparison()` value as `comparison`, so details uses the same
+   add/remove behavior and limit rules as the catalogue card and comparison view.
 4. **Details → Enquire** — Spec 03 links to Spec 05's enquiry entry route.
    *Remaining work:* confirm `enquiryHref` matches the route Spec 05 ships.
 5. **Comparison view → Details / Enquire / Back** — Spec 04 links to Spec 03 route,

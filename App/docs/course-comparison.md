@@ -66,8 +66,9 @@ technology; it is rendered once by `ComparisonAnnouncer`.
 `useComparison()` **throws** outside a `ComparisonProvider`, so a missing mount
 fails immediately instead of silently discarding a learner's shortlist.
 
-Specification 03 consumes a structural subset of this interface (`add`, `has`,
-`isFull`, `max`) through its own `CourseComparisonSeam` type — see
+Specification 03 consumes a structural subset of this interface (`add`,
+`remove`, `has`, `isFull`, `max`) through its own `CourseComparisonSeam` type —
+see
 [`phase-1-integration.md`](./phase-1-integration.md).
 
 ## Structure
@@ -98,12 +99,11 @@ The selection is also mirrored into `sessionStorage` under
 `eduagent.comparison`, so a reload or a directly-opened comparison URL keeps the
 shortlist for the rest of the browsing session. This is a progressive
 enhancement, and storage is treated as external input: it is parsed by a Zod
-schema annotated `z.ZodType<Course>` and built from the shared enum constants,
-so a stored entry can never be handed out as a `Course` unless it really is one,
-and any drift from the shared model is a compile error rather than a runtime
-surprise. An unreadable, malformed, or oversized payload is discarded in full
-rather than restored partially, and every read and write tolerates storage being
-unavailable. Nothing sensitive is stored, and nothing leaves the browser.
+schema that reuses the shared `COURSE_SCHEMA`, so a stored entry can never be
+handed out as a `Course` unless it really is one. An unreadable, malformed, or
+oversized payload is discarded in full rather than restored partially, and every
+read and write tolerates storage being unavailable. Nothing sensitive is stored,
+and nothing leaves the browser.
 
 Because items are captured at add time, a restored selection shows the values as
 they were when the course was added. For synthetic, static course data that is
@@ -115,13 +115,10 @@ immaterial; if the data ever becomes live, refresh on hydration via
 Courses are columns and attributes are rows, so one attribute reads across every
 course in a single line. In fixed order:
 
-**Availability · Course type · Discipline · Category · Level · Delivery mode ·
-Duration · Intake · Fee · Eligibility**, then a **Next step** row with each
-course's actions. The course title and code are the column headers.
-
-Publication `status` is deliberately absent: the catalogue only serves listable
-courses, so the row would read "Published" in every column and differentiate
-nothing. Availability is the attribute a learner actually compares.
+**Availability · Status · Course type · Discipline · Category · Level ·
+Delivery mode · Duration · Intake · Fee · Eligibility**, then a **Next step**
+row with each course's actions. The course title and code are the column
+headers.
 
 Every value comes from the shared Course model, rendered through the
 Specification 02 label maps, `format.ts`, and `AvailabilityBadge`. No attribute
@@ -182,6 +179,6 @@ and **all** AI/agent/WebMCP/MCP functionality including AI comparison,
 recommendations, ranking, and scoring. Those belong to Phase 2, which is a
 separate set of specifications written only after Phase 1 is complete.
 
-The details page's optional add-to-comparison affordance is still unwired: its
-route host passes no `comparison` prop. Supplying the real `useComparison()`
-value there is a one-prop integration task owned by Specification 06.
+The details page now consumes the shared comparison interface from the route host
+so its add/remove control follows the same duplicate/limit rules as catalogue
+cards and the comparison view.

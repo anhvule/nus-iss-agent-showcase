@@ -10,14 +10,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { z } from 'zod';
 import {
-  COURSE_AVAILABILITIES,
-  COURSE_LEVELS,
-  COURSE_STATUSES,
-  COURSE_TYPES,
-  DELIVERY_MODES,
-  DISCIPLINES,
+  COURSE_SCHEMA,
   type Course,
 } from '@/lib/courses/types';
 
@@ -70,39 +64,11 @@ const STORAGE_KEY = 'eduagent.comparison';
 
 /*
  * Session storage is external input, so it is validated rather than trusted
- * (coding-standards: "use Zod for all external input"). This is a *read guard*,
- * not a second Course model (NFR-401): the shape is built from the shared enum
- * constants, and the `z.ZodType<Course>` annotation makes any drift from the
- * shared model a compile error rather than a runtime surprise.
+ * (coding-standards: "use Zod for all external input"). Validation reuses the
+ * shared client Course schema from `lib/courses/types`, so comparison storage
+ * cannot drift into an alternate course model definition (NFR-401).
  */
-const STORED_COURSE_SCHEMA: z.ZodType<Course> = z.object({
-  id: z.string().min(1),
-  code: z.string(),
-  title: z.string().min(1),
-  shortDescription: z.string(),
-  description: z.string(),
-  discipline: z.enum(DISCIPLINES),
-  category: z.string(),
-  courseType: z.enum(COURSE_TYPES),
-  level: z.enum(COURSE_LEVELS),
-  durationWeeks: z.number().finite(),
-  deliveryMode: z.enum(DELIVERY_MODES),
-  intake: z.string(),
-  startDate: z.string(),
-  applicationDeadline: z.string(),
-  fee: z.number().finite(),
-  currency: z.string(),
-  eligibility: z.string(),
-  entryRequirements: z.array(z.string()),
-  skills: z.array(z.string()),
-  status: z.enum(COURSE_STATUSES),
-  availability: z.enum(COURSE_AVAILABILITIES),
-  tags: z.array(z.string()),
-});
-
-const STORED_SELECTION_SCHEMA = z
-  .array(STORED_COURSE_SCHEMA)
-  .max(MAX_COMPARISON_COURSES);
+const STORED_SELECTION_SCHEMA = COURSE_SCHEMA.array().max(MAX_COMPARISON_COURSES);
 
 /**
  * Read the selection mirrored for this session. Any unreadable, malformed, or
@@ -216,7 +182,7 @@ export function ComparisonProvider({
   const clear = useCallback((): void => {
     if (itemsRef.current.length === 0) return;
     commit([]);
-    setStatus('Comparison cleared.');
+    setStatus(`Comparison cleared. ${selectionSummary(0)}`);
   }, [commit]);
 
   const value = useMemo<ComparisonApi>(

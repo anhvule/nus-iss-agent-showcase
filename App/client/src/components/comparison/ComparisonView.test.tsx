@@ -34,6 +34,7 @@ const security = makeCourse({
   fee: 1800,
   currency: 'SGD',
   eligibility: 'No prior experience required.',
+  status: 'draft',
   availability: 'closing_soon',
 });
 
@@ -100,6 +101,10 @@ describe('ComparisonView with a selection', () => {
     expect(within(deliveryRow).getByText('Blended')).toBeInTheDocument();
     expect(within(deliveryRow).getByText('Online')).toBeInTheDocument();
 
+    const statusRow = within(table).getByRole('row', { name: /^status/i });
+    expect(within(statusRow).getByText('Published')).toBeInTheDocument();
+    expect(within(statusRow).getByText('Draft')).toBeInTheDocument();
+
     const eligibilityRow = within(table).getByRole('row', { name: /^eligibility/i });
     expect(
       within(eligibilityRow).getByText('Open to working adults.'),
@@ -122,6 +127,7 @@ describe('ComparisonView with a selection', () => {
       .map((header) => header.textContent);
     expect(rowHeaders).toEqual([
       'Availability',
+      'Status',
       'Course type',
       'Discipline',
       'Category',
