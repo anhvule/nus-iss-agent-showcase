@@ -34,3 +34,7 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Documentation
+docs/
+**/docs/
