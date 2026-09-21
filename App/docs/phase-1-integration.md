@@ -19,7 +19,7 @@ points, implementation order, and the final human-website flow.
 | 01 | Foundation | Implemented | Monorepo, Express app, Zod boundary, error/logging/security, Next.js shell, UI primitives, client API boundary, `GET /api/health` |
 | 02 | Human Course Catalogue | Implemented | Course model + synthetic data, repository/service/controller/routes, `GET /api/courses`, `GET /api/courses/:courseId`, catalogue UI + minimal details placeholder |
 | 03 | Human Course Details | Implemented | Complete course details page (frontend-only; reuses Course capability) — see [`course-details.md`](./course-details.md) |
-| 04 | Human Course Comparison | Specified | Client-side side-by-side comparison (frontend-only; shared `useComparison` interface) |
+| 04 | Human Course Comparison | Implemented | Client-side side-by-side comparison (frontend-only; shared `useComparison` interface) — see [`course-comparison.md`](./course-comparison.md) |
 | 05 | Human Course Enquiry | Specified | First WRITE: enquiry domain/service/repository + `POST /api/enquiries` + enquiry form/confirmation |
 | 06 | Human Website Completion / Integration | Planned | Cross-feature wiring, navigation, alias/route decisions, end-to-end journey |
 | 07 | Human Website Testing & Quality | Planned | Cross-feature integration/e2e tests, accessibility & responsive validation, quality gates |
@@ -87,6 +87,22 @@ client; `server/src/domain/course.ts` on the server). Any change is a coordinate
 - Spec 04 **produces** a small shared comparison interface — `useComparison()` /
   comparison context — with at least `items`, `add`, `remove`, `has`, `clear`,
   `count`, `isFull`, `max` (max = **4**; duplicates are a no-op).
+- **As implemented (Spec 04):** `useComparison()` lives in
+  `client/src/components/comparison/comparison-context.tsx` and returns
+  `items`, `add`, `remove`, `has`, `clear`, `count`, `isFull`, `max`
+  (`MAX_COMPARISON_COURSES` = 4), plus `status` — the last change worded for a
+  live region. `add` returns `'added' | 'duplicate' | 'full'` so a caller can
+  react to a rejection without re-deriving the rules; that return value keeps it
+  assignable to Spec 03's `(course: Course) => void` seam. The hook throws
+  outside a `ComparisonProvider`, which is mounted in `app/layout.tsx` together
+  with `ComparisonAnnouncer` and `ComparisonBar`. The selection is mirrored into
+  `sessionStorage` (`eduagent.comparison`) for the browsing session.
+- **Comparison route (Spec 04):** `/lifelong-learning/courses/compare`. The
+  static `compare` segment sits beside `[courseId]` and Next.js matches it
+  first, so the two never collide.
+- **Reusable control (Spec 04):**
+  `client/src/components/comparison/AddToCompareButton.tsx` — wired into the
+  Spec 02 `CourseCard`, and exported for Spec 03's optional affordance.
 - Spec 03 **optionally consumes** this interface for an add-to-comparison affordance
   on the details page (guarded: if the interface is unavailable, the affordance is
   omitted without breaking the page).
@@ -171,19 +187,27 @@ Shared Course model/API (Spec 01/02)  ──►  Agree useComparison + enquiry r
 ## Integration points (explicit)
 
 1. **Catalogue card → Add to compare** — Spec 02 `CourseCard` renders Spec 04's
-   `AddToCompareButton` via `useComparison` (additive; wired in integration).
+   `AddToCompareButton` via `useComparison`. **Wired** (additive: the card gained
+   one control and holds no comparison state).
 2. **Catalogue/Details → Details page** — existing `/lifelong-learning/courses/:courseId`
    (Spec 02 route; content completed by Spec 03).
 3. **Details → Add to compare (optional)** — Spec 03 consumes Spec 04's interface.
-   *Remaining work:* pass the real `useComparison()` value as the `comparison`
-   prop in `app/lifelong-learning/courses/[courseId]/page.tsx`.
+   *Remaining work (Spec 06):* pass the real `useComparison()` value as the
+   `comparison` prop in `app/lifelong-learning/courses/[courseId]/page.tsx`.
+   Both sides now exist — Spec 04 ships the interface and Spec 03 the seam — so
+   this is a one-prop change. The route host is a server component, so the value
+   has to be read in a small client wrapper. Until then the details page simply
+   omits the affordance; the catalogue card and the comparison view both offer
+   add/remove, and the sticky count is visible on the details page.
 4. **Details → Enquire** — Spec 03 links to Spec 05's enquiry entry route.
    *Remaining work:* confirm `enquiryHref` matches the route Spec 05 ships.
 5. **Comparison view → Details / Enquire / Back** — Spec 04 links to Spec 03 route,
-   Spec 05 entry route, and the catalogue.
+   Spec 05 entry route, and the catalogue. **Wired**, with the catalogue and
+   enquiry targets imported from `details/routes.ts` rather than restated, so
+   the enquiry entry point stays changeable in one edit when Spec 05 lands.
 6. **Enquiry form → `POST /api/enquiries` → Confirmation** — Spec 05 end to end.
-7. **ComparisonProvider mount** — placed in the app shell during integration so
-   comparison state is shared across catalogue/details/comparison.
+7. **ComparisonProvider mount** — **done**: mounted in `app/layout.tsx` (Spec 04,
+   FR-407), so comparison state is shared across catalogue/details/comparison.
 
 ## Final human-website flow (Phase 1 target)
 
