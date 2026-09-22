@@ -1,11 +1,12 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import type { Course } from '@/lib/courses/types';
 import {
+  EMAIL_MAX_LENGTH,
   ENQUIRY_TYPES,
   ENQUIRY_TYPE_LABELS,
   MESSAGE_MAX_LENGTH,
@@ -19,6 +20,7 @@ import {
   validateEnquiryDraft,
   type EnquiryDraft,
   type EnquiryErrors,
+  type EnquiryField as EnquiryFieldName,
 } from '@/lib/enquiries/validation';
 import { EnquiryField } from './EnquiryField';
 import { SyntheticDataNotice } from './SyntheticDataNotice';
@@ -41,6 +43,29 @@ const EMPTY_DRAFT: EnquiryDraft = {
   message: '',
 };
 
+/** Field order, used to focus the first invalid control and to filter server issues. */
+const FIELD_ORDER: EnquiryFieldName[] = ['name', 'email', 'phone', 'enquiryType', 'message'];
+
+/**
+ * Keep only the issues that name a control this form actually renders. The
+ * server validates fields the learner never sees (`courseId`), and an issue on
+ * one of those must not be silently typed as if it belonged to a draft field.
+ */
+function toFieldErrors(
+  serverFieldErrors: Record<string, string> | undefined,
+  edited: ReadonlySet<EnquiryFieldName>,
+): EnquiryErrors {
+  if (serverFieldErrors === undefined) return {};
+  const errors: EnquiryErrors = {};
+  for (const field of FIELD_ORDER) {
+    const message = serverFieldErrors[field];
+    // A field the learner has since changed is no longer described by the last
+    // response, so its message is dropped rather than left to go stale.
+    if (message !== undefined && !edited.has(field)) errors[field] = message;
+  }
+  return errors;
+}
+
 export function EnquiryForm({
   course,
   submitting,
@@ -58,19 +83,26 @@ export function EnquiryForm({
   onSubmit: (input: EnquiryInput) => void;
 }): React.JSX.Element {
   const fieldPrefix = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const [draft, setDraft] = useState<EnquiryDraft>(EMPTY_DRAFT);
   const [clientErrors, setClientErrors] = useState<EnquiryErrors>({});
   // Errors appear only after the first submit attempt, so the form does not
   // scold a learner for fields they have not reached yet.
   const [attempted, setAttempted] = useState(false);
+  // Fields touched since the last server response, so its issues can expire.
+  const [editedSinceResponse, setEditedSinceResponse] = useState<Set<EnquiryFieldName>>(
+    () => new Set(),
+  );
 
-  const errors: EnquiryErrors = attempted
-    ? { ...(serverFieldErrors as EnquiryErrors), ...clientErrors }
-    : (serverFieldErrors as EnquiryErrors) ?? {};
+  const errors: EnquiryErrors = {
+    ...toFieldErrors(serverFieldErrors, editedSinceResponse),
+    ...(attempted ? clientErrors : {}),
+  };
 
-  const update = (field: keyof EnquiryDraft, value: string): void => {
+  const update = (field: EnquiryFieldName, value: string): void => {
     const next = { ...draft, [field]: value };
     setDraft(next);
+    setEditedSinceResponse((current) => new Set(current).add(field));
     // Re-validate live once the learner has tried to submit, so a fixed field
     // stops showing an error as soon as it is valid.
     if (attempted) setClientErrors(validateEnquiryDraft(next));
@@ -84,7 +116,18 @@ export function EnquiryForm({
     setAttempted(true);
     const found = validateEnquiryDraft(draft);
     setClientErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      // Move focus to the first problem so a keyboard or screen-reader user is
+      // taken to it rather than left to hunt for the highlighted control.
+      const firstInvalid = FIELD_ORDER.find((field) => found[field] !== undefined);
+      if (firstInvalid !== undefined) {
+        formRef.current
+          ?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)
+          ?.focus();
+      }
+      return;
+    }
+    setEditedSinceResponse(new Set());
 
     const phone = draft.phone.trim();
     onSubmit({
@@ -100,9 +143,12 @@ export function EnquiryForm({
   };
 
   const id = (field: string): string => `${fieldPrefix}-${field}`;
+  const clientErrorCount = attempted ? Object.keys(clientErrors).length : 0;
+  const hasClientErrors = clientErrorCount > 0;
 
   return (
     <form
+      ref={formRef}
       aria-labelledby="enquiry-form-heading"
       noValidate
       onSubmit={handleSubmit}
@@ -138,11 +184,26 @@ export function EnquiryForm({
 
       <SyntheticDataNotice />
 
-      {submitError && (
+      {/*
+        One alert region, never two: a fresh client-validation failure describes
+        what the learner must fix now and so supersedes a previous submission
+        error, which would otherwise sit alongside it and compete for attention.
+      */}
+      {hasClientErrors ? (
         <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4">
-          <p className="font-medium text-red-900">We couldn&apos;t send your enquiry</p>
-          <p className="mt-1 text-sm text-red-800">{submitError}</p>
+          <p className="font-medium text-red-900">Check the highlighted fields</p>
+          <p className="mt-1 text-sm text-red-800">
+            Your enquiry was not sent. Please correct the {clientErrorCount}{' '}
+            {clientErrorCount === 1 ? 'field' : 'fields'} marked below and try again.
+          </p>
         </div>
+      ) : (
+        submitError && (
+          <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4">
+            <p className="font-medium text-red-900">We couldn&apos;t send your enquiry</p>
+            <p className="mt-1 text-sm text-red-800">{submitError}</p>
+          </div>
+        )
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -168,6 +229,7 @@ export function EnquiryForm({
               name="email"
               type="email"
               autoComplete="email"
+              maxLength={EMAIL_MAX_LENGTH}
               required
               value={draft.email}
               onChange={(event) => update('email', event.target.value)}

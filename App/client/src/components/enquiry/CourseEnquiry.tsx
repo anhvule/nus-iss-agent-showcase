@@ -77,37 +77,44 @@ export function CourseEnquiry({ courseId }: { courseId: string }): React.JSX.Ele
 
   const retryCourse = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  const submit = useCallback((input: EnquiryInput) => {
-    // Duplicate-submit protection lives in one place: the form disables its
-    // control, and this guard makes a second call impossible regardless (FR-518).
-    setSubmission((current) => {
-      if (current.phase === 'submitting' || current.phase === 'success') return current;
+  // Duplicate-submit protection (FR-518). The form also disables its control,
+  // but this ref is the guarantee: it is read and set outside React's state
+  // machinery, so it holds even where a render or an updater runs twice.
+  const inFlight = useRef(false);
 
-      void enquiriesApi
-        .submit(input)
-        .then((result) => setSubmission({ phase: 'success', result }))
-        .catch((error: unknown) => {
-          if (error instanceof EnquiryApiError) {
-            // The course vanished between opening the form and submitting:
-            // show the unavailable state rather than a form-level error.
-            if (error.code === 'NOT_FOUND') {
-              setCourseState({ phase: 'unavailable', message: error.message });
-              setSubmission({ phase: 'idle' });
-              return;
-            }
-            setSubmission({
-              phase: 'error',
-              message: error.message,
-              ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}),
-            });
+  const submit = useCallback((input: EnquiryInput) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSubmission({ phase: 'submitting' });
+
+    void enquiriesApi
+      .submit(input)
+      .then((result) => {
+        // Deliberately stays true: a confirmed enquiry is never resubmittable.
+        setSubmission({ phase: 'success', result });
+      })
+      .catch((error: unknown) => {
+        // A failure is retryable, so the guard is released (FR-517).
+        inFlight.current = false;
+
+        if (error instanceof EnquiryApiError) {
+          // The course vanished between opening the form and submitting: show
+          // the unavailable state rather than a form-level error.
+          if (error.code === 'NOT_FOUND') {
+            setCourseState({ phase: 'unavailable', message: error.message });
+            setSubmission({ phase: 'idle' });
             return;
           }
-          // Anything unexpected is reported generically — never raw (SR-503).
-          setSubmission({ phase: 'error', message: GENERIC_SUBMIT_ERROR });
-        });
-
-      return { phase: 'submitting' };
-    });
+          setSubmission({
+            phase: 'error',
+            message: error.message,
+            ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}),
+          });
+          return;
+        }
+        // Anything unexpected is reported generically — never raw (SR-503).
+        setSubmission({ phase: 'error', message: GENERIC_SUBMIT_ERROR });
+      });
   }, []);
 
   if (courseState.phase === 'loading') return <EnquiryLoading />;

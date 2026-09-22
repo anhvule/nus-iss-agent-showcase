@@ -153,7 +153,9 @@ Validation exists in **two places with different jobs**:
 
 - **Client (`validation.ts`)** — advisory, for immediate field-level feedback.
   Errors appear only after the first submit attempt, then clear live as fields
-  are fixed.
+  are fixed. A blocked submit also announces a form-level summary and moves
+  focus to the first invalid control. Server-reported field issues clear as soon
+  as the learner edits the field they describe, so a stale message never lingers.
 - **Server (`enquiry.ts`)** — **authoritative**. Every submission is
   re-validated at the request boundary regardless of what the client did. A
   payload posted straight to the API, bypassing the form entirely, is rejected
@@ -186,6 +188,12 @@ Validation exists in **two places with different jobs**:
   public API through the Spec 01 boundary.
 - Helmet and the CORS allow-list from Spec 01 apply unchanged.
 
+**Known gaps, by design.** The in-memory store is unbounded and the endpoint is
+not rate-limited. Specification 05 deliberately stops short of both: the store is
+synthetic and discarded on restart, and the spec calls for reasonable constraints
+rather than abuse infrastructure. A production deployment would need a real store
+with retention rules and rate limiting at the edge.
+
 ## Accessibility
 
 Labelled controls with real `<label for>`; `aria-invalid` plus
@@ -210,7 +218,10 @@ single-column layout at mobile widths that becomes two columns from `sm`.
 
 The integration test runs the **real Express app in-process** on an ephemeral
 port and drives the **real form** against it, so it is the test that would catch
-a request/response contract drift between the two workspaces.
+a request/response contract drift between the two workspaces. It also asserts
+**parity** between the client's mirrored enum/bounds and the server's originals,
+so raising a bound on one side without the other fails the build rather than
+silently leaving the form's helper text lying to the learner.
 
 ## Running it
 

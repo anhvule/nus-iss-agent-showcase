@@ -70,6 +70,9 @@ export function validateEnquiryDraft(draft: EnquiryDraft): EnquiryErrors {
     }
   }
 
+  // The form's <select> always holds one of the enum values, so the empty case
+  // is unreachable from the UI; it is kept because this function validates a
+  // draft, not a particular control, and a caller may build one by hand.
   if (draft.enquiryType.trim().length === 0) {
     errors.enquiryType = 'Choose what your enquiry is about.';
   } else if (!isEnquiryType(draft.enquiryType)) {

@@ -4,6 +4,14 @@ import type { AddressInfo } from 'node:net';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { coursesApi } from '@/lib/courses/api';
+import {
+  EMAIL_MAX_LENGTH,
+  ENQUIRY_TYPES,
+  MESSAGE_MAX_LENGTH,
+  MESSAGE_MIN_LENGTH,
+  NAME_MAX_LENGTH,
+  PHONE_MAX_LENGTH,
+} from '@/lib/enquiries/types';
 import { enquiriesApi, EnquiryApiError } from '@/lib/enquiries/api';
 import { CourseEnquiry } from '@/components/enquiry/CourseEnquiry';
 
@@ -130,6 +138,39 @@ describe('server validation is authoritative (AC-504)', () => {
       status: 404,
       code: 'NOT_FOUND',
       message: 'The selected course is not available for enquiries.',
+    });
+  });
+});
+
+describe('client/server contract parity (NFR-502)', () => {
+  /**
+   * The client mirrors the server's enum and field bounds so the form can label
+   * controls and give immediate feedback. Nothing else makes the two agree, so
+   * this is the test that fails when one side moves: without it, raising a bound
+   * on the server would silently leave the form's `maxLength` and its helper
+   * text lying to the learner.
+   */
+  it('mirrors the server enquiry-type enum exactly, in order', async () => {
+    const server = await import('../../../../server/src/domain/enquiry');
+
+    expect([...ENQUIRY_TYPES]).toEqual([...server.ENQUIRY_TYPES]);
+  });
+
+  it('mirrors every server field bound', async () => {
+    const server = await import('../../../../server/src/domain/enquiry');
+
+    expect({
+      name: NAME_MAX_LENGTH,
+      email: EMAIL_MAX_LENGTH,
+      phone: PHONE_MAX_LENGTH,
+      messageMin: MESSAGE_MIN_LENGTH,
+      messageMax: MESSAGE_MAX_LENGTH,
+    }).toEqual({
+      name: server.NAME_MAX_LENGTH,
+      email: server.EMAIL_MAX_LENGTH,
+      phone: server.PHONE_MAX_LENGTH,
+      messageMin: server.MESSAGE_MIN_LENGTH,
+      messageMax: server.MESSAGE_MAX_LENGTH,
     });
   });
 });

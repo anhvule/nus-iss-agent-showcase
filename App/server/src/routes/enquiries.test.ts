@@ -136,6 +136,21 @@ describe('POST /api/enquiries', () => {
     expect(res.body.error.message).toBe('Request body is too large.');
   });
 
+  it('rejects an unsupported content encoding as a client error, not a 500', async () => {
+    // Oversized and malformed bodies are not the only way body parsing fails.
+    // Any such failure is the caller's mistake, so none of them should reach the
+    // client as INTERNAL or be logged as an unhandled error (SR-503, SR-505).
+    const res = await request(app)
+      .post('/api/enquiries')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', 'br')
+      .send(JSON.stringify(validBody()));
+
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBeLessThan(500);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('rejects a malformed JSON body as a client error', async () => {
     const res = await request(app)
       .post('/api/enquiries')
@@ -232,7 +247,10 @@ describe('enquiry logging (SR-504, AC-510)', () => {
   });
 
   it('emits no personal field when a submission is rejected', async () => {
-    await request(app).post('/api/enquiries').send(validBody({ email: 'nope' }));
+    // Reject on `enquiryType` so every personal field is sent exactly as the
+    // assertion expects it — rejecting on `email` would search the logs for a
+    // value that was never submitted.
+    await request(app).post('/api/enquiries').send(validBody({ enquiryType: 'refunds' }));
 
     const logs = captured.join('\n');
     for (const value of Object.values(PERSONAL_FIELDS)) {

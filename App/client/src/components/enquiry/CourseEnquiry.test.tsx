@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Course } from '@/lib/courses/types';
@@ -206,6 +207,16 @@ describe('client validation (AC-502)', () => {
     expect(messages).toMatch(/enter your name/i);
   });
 
+  it('announces a form-level problem and moves focus to the first invalid control', async () => {
+    const user = userEvent.setup();
+    await renderForm();
+
+    await user.click(screen.getByRole('button', { name: /send enquiry/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/check the highlighted fields/i);
+    expect(screen.getByLabelText(/your name/i)).toHaveFocus();
+  });
+
   it('clears a field error once the learner fixes it', async () => {
     const user = userEvent.setup();
     await renderForm();
@@ -317,6 +328,21 @@ describe('duplicate-submit protection (AC-508)', () => {
     release(CONFIRMATION);
   });
 
+  it('sends one request under StrictMode, whose double-invoked renders must not double-submit', async () => {
+    const user = userEvent.setup();
+    render(
+      <StrictMode>
+        <CourseEnquiry courseId={COURSE.id} />
+      </StrictMode>,
+    );
+    await screen.findByRole('form', { name: /enquire about this course/i });
+    await fillValidEnquiry(user);
+
+    await user.click(screen.getByRole('button', { name: /send enquiry/i }));
+
+    await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
+  });
+
   it('sends only one request when submit is clicked repeatedly', async () => {
     const user = userEvent.setup();
     let release: (value: EnquiryConfirmationResult) => void = () => {};
@@ -380,6 +406,25 @@ describe('submission errors (AC-509)', () => {
       expect(screen.getByLabelText(/email/i)).toHaveAttribute('aria-invalid', 'true');
     });
     expect(screen.getByText('Enter a valid email address')).toBeInTheDocument();
+  });
+
+  it('clears a server field error as soon as the learner edits that field', async () => {
+    const user = userEvent.setup();
+    submitMock.mockRejectedValue(
+      new EnquiryApiError('Invalid request parameters', 400, 'VALIDATION_ERROR', {
+        email: 'Enter a valid email address',
+      }),
+    );
+    await renderForm();
+    await fillValidEnquiry(user);
+    await user.click(screen.getByRole('button', { name: /send enquiry/i }));
+    await screen.findByText('Enter a valid email address');
+
+    await user.type(screen.getByLabelText(/email/i), '.sg');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Enter a valid email address')).not.toBeInTheDocument();
+    });
   });
 
   it('shows the unavailable-course message when the course disappears mid-flow (AC-505)', async () => {
