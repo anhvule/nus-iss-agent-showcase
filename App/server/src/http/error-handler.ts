@@ -14,6 +14,26 @@ export function notFoundHandler(_req: Request, res: Response): void {
 }
 
 /**
+ * Body-parser failures (a malformed or oversized JSON body) reach the error
+ * handler as plain `Error`s carrying an HTTP status and a `type`. They are
+ * caller mistakes, so mapping them to a generic 500 would both misreport the
+ * cause and log a routine client error as an unhandled one. Introduced with the
+ * first WRITE endpoint (Specification 05, SR-505); before that no route
+ * accepted a body.
+ */
+function asBodyParserError(err: unknown): ApiError | null {
+  if (typeof err !== 'object' || err === null || !('type' in err)) return null;
+  const { type } = err as { type?: unknown };
+  if (type === 'entity.too.large') {
+    return new ApiError(413, 'VALIDATION_ERROR', 'Request body is too large.');
+  }
+  if (type === 'entity.parse.failed') {
+    return ApiError.validation('Request body is not valid JSON.');
+  }
+  return null;
+}
+
+/**
  * Centralised error handler.
  *
  * Renders operational {@link ApiError}s into the shared envelope with their
@@ -29,6 +49,12 @@ export function errorHandler(
 ): void {
   if (err instanceof ApiError) {
     res.status(err.status).json(err.toBody());
+    return;
+  }
+
+  const bodyError = asBodyParserError(err);
+  if (bodyError !== null) {
+    res.status(bodyError.status).json(bodyError.toBody());
     return;
   }
 

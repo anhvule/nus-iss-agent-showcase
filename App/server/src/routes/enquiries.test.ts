@@ -114,6 +114,38 @@ describe('POST /api/enquiries', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('rejects a body beyond the size limit as a client error, not a 500 (SR-505)', async () => {
+    // Bigger than the configured limit. Reporting this as INTERNAL would both
+    // misattribute a client mistake to the server and log it as an unhandled
+    // error, so it is mapped at the boundary instead.
+    const res = await request(app)
+      .post('/api/enquiries')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ ...validBody(), message: 'a'.repeat(200_000) }));
+
+    expect(res.status).toBe(413);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('keeps the oversized-body message free of internals (SR-503)', async () => {
+    const res = await request(app)
+      .post('/api/enquiries')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ ...validBody(), message: 'a'.repeat(200_000) }));
+
+    expect(res.body.error.message).toBe('Request body is too large.');
+  });
+
+  it('rejects a malformed JSON body as a client error', async () => {
+    const res = await request(app)
+      .post('/api/enquiries')
+      .set('Content-Type', 'application/json')
+      .send('{"name": "Alex",');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('maps an unknown course to a structured 404 (FR-510, AC-505)', async () => {
     const res = await request(app)
       .post('/api/enquiries')
