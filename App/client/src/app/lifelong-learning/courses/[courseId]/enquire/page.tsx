@@ -23,7 +23,7 @@ export default function CourseEnquiryPage({
 }): React.JSX.Element {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <CourseEnquiry courseId={decodeURIComponent(params.courseId)} />
+      <CourseEnquiry courseId={params.courseId} />
     </main>
   );
 }

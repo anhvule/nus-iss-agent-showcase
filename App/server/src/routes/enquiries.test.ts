@@ -10,7 +10,7 @@ import { logger } from '../config/logger.js';
  * validate middleware, controller, service and repository are all in play.
  */
 
-const app = createApp();
+let app: ReturnType<typeof createApp>;
 
 const PERSONAL_FIELDS = {
   name: 'Alex Tan',
@@ -33,6 +33,10 @@ async function firstListableCourseId(): Promise<string> {
   const res = await request(app).get('/api/courses').query({ pageSize: 1 });
   return res.body.data[0].id as string;
 }
+
+beforeEach(() => {
+  app = createApp();
+});
 
 describe('POST /api/enquiries', () => {
   it('creates an enquiry and returns 201 with a reference (FR-511, FR-512)', async () => {

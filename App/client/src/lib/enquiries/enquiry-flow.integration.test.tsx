@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -30,12 +30,14 @@ let courseId: string;
 let courseTitle: string;
 const originalBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-beforeAll(async () => {
+beforeAll(() => {
   // Silence request logging before the config module is first evaluated, so the
   // suite's output stays pristine.
   process.env.LOG_LEVEL = 'silent';
-  const { createApp } = await import('../../../../server/src/app');
+});
 
+beforeEach(async () => {
+  const { createApp } = await import('../../../../server/src/app');
   server = createServer(createApp());
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
@@ -50,15 +52,18 @@ beforeAll(async () => {
   courseTitle = first.title;
 });
 
-afterAll(async () => {
-  if (originalBaseUrl === undefined) {
-    delete process.env.NEXT_PUBLIC_API_BASE_URL;
-  } else {
-    process.env.NEXT_PUBLIC_API_BASE_URL = originalBaseUrl;
-  }
+afterEach(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve())),
   );
+});
+
+afterAll(() => {
+  if (originalBaseUrl === undefined) {
+    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    return;
+  }
+  process.env.NEXT_PUBLIC_API_BASE_URL = originalBaseUrl;
 });
 
 describe('enquiry flow against the real API (AC-503)', () => {
